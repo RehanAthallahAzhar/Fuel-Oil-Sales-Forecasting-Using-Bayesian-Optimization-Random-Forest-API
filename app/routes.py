@@ -6,9 +6,9 @@ from app.controller import read_dataset
 def index():
     return 'Hello World!'
 
-@app.route('/rfr-prediction/<int:month>')
-def rfr_prediction(month):
-    return rfr_predictor_controller.rfr_prediction(month);
+@app.route('/rfr-prediction/<int:month>/<int:lag>')
+def rfr_prediction(month, lag):
+    return rfr_predictor_controller.rfr_prediction(month, lag);
 
 @app.route('/read-data-by-year/<int:year>')
 def read_csv(year):
