@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-import warnings
 
 import pandas as pd
 import numpy as np
@@ -8,15 +7,18 @@ import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from skopt import BayesSearchCV
+from skopt.space import Integer, Categorical
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 from app import app, response
 from app.utils.date import formatTimestampToDay, convertMonthtoLatin
 
-def rfr_prediction(month, lag):
+
+def bo_rfr_prediction(month, lag, cvParam):
     # Load dataset
     date_format = "%d/%m/%Y"
-    df = pd.read_csv('./app/dataset/Biosolar.csv', delimiter=';', decimal=',', parse_dates=['date'], date_parser=lambda x: pd.to_datetime(x, format=date_format))
+    df = pd.read_csv('./app/dataset/PertaliteV2.csv', delimiter=';', decimal=',', parse_dates=['date'], date_parser=lambda x: pd.to_datetime(x, format=date_format))
     df.dropna(inplace=True)
 
     # Convert 'date' column to datetime format
@@ -56,12 +58,34 @@ def rfr_prediction(month, lag):
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    # Initialize the RandomForestRegressor with minimal tuning
-    rf = RandomForestRegressor(n_estimators=100, random_state=42)
-    rf.fit(X_train_scaled, y_train)
+    # Define the parameter space for Bayesian optimization
+    param_space = {
+        'n_estimators': Integer(50, 200),
+        'max_depth': Categorical([None, 5, 10, 15, 20]),
+        'min_samples_split': Integer(2, 30),
+        'min_samples_leaf': Integer(1, 20),
+        'max_features': Integer(1, X_train.shape[1])
+    }
+
+    # Initialize the RandomForestRegressor
+    rf = RandomForestRegressor(random_state=42)
+
+    # Bayesian Optimization
+    bayes_search = BayesSearchCV(
+        estimator=rf,
+        search_spaces=param_space,
+        n_iter=32,
+        cv=cvParam,
+        n_jobs=-1,
+        verbose=2,
+        random_state=42
+    )
+    bayes_search.fit(X_train_scaled, y_train)
+
+    best_rf = bayes_search.best_estimator_
 
     # Predict for evaluation
-    y_pred = rf.predict(X_test_scaled)
+    y_pred = best_rf.predict(X_test_scaled)
 
     # RMSE
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
@@ -74,7 +98,6 @@ def rfr_prediction(month, lag):
     # MAPE
     mape = np.mean(np.abs((y_test - y_pred) / y_test)) * 100
     print("MAPE:", mape)
-
 
     # Prediction for 1 month
     future_dates = pd.date_range(start="2024-01-01", end="2024-01-31")
@@ -111,7 +134,7 @@ def rfr_prediction(month, lag):
         features_scaled = scaler.transform(row_df)
 
         # Predict the outgoing value
-        prediction = rf.predict(features_scaled)
+        prediction = best_rf.predict(features_scaled)
 
         # Store the prediction
         respons = {
