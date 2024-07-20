@@ -1,0 +1,15 @@
+flask
+pandas
+openpyxl
+flask-cors
+
+pathlib
+python-dotenv
+PyJWT
+Flask-SQLAlchemy
+Flask-Migrate
+flask-bcrypt
+mysqlclient
+
+scikit-learn
+scikit-optimize

@@ -5,4 +5,7 @@
 .env
 /logs/
 /cache/
-/app/dataset/*.csv
+/src/dataset/
+
+/.vscode/
+# /app/dataset/Januari2024/*.csv

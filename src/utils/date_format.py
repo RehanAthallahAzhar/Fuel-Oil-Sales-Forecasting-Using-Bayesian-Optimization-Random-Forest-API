@@ -4,9 +4,9 @@ import calendar
 
 # CONST FORMATDATETODAY= "%d"
 
-
-def formatTimestampToDay(timestamp):
+def FormatTimestampToDay(timestamp):
     return datetime.fromtimestamp(timestamp).day
 
-def convertMonthtoLatin(month):
-    return calendar.month_name[int(month)]
+def ConvertMonthtoLatin(month):
+    return calendar.month_name[int(month)] 
+
